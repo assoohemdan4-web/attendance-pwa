@@ -353,6 +353,10 @@
       if (savedUrl) {
         document.getElementById('sheetUrlInput').value = savedUrl;
         fetchGoogleSheetData(savedUrl);
+      } else {
+        // تحميل أي داتا سابقة محلياً
+        processedAdminRecords = JSON.parse(localStorage.getItem('pwa_records_data') || '[]');
+        globalEmployees = JSON.parse(localStorage.getItem('pwa_emp_data') || '{}');
       }
     });
 
@@ -511,7 +515,9 @@
         
         if (timeMins !== null) {
           const key = `${p.code}_${dateObj.str}`;
-          if (!grouped[key]) grouped[key] = { code: p.code, dateStr: dateObj.str, dayIdx: dateObj.dayIdx, times: [] };
+          if (!grouped[key]) {
+            grouped[key] = { code: p.code, dateStr: dateObj.str, dayIdx: dateObj.dayIdx, times: [] };
+          }
           grouped[key].times.push(timeMins);
         }
       });
@@ -561,7 +567,7 @@
         else if (lateMins > 0 || earlyMins > 0) { status = 'تأخير / مبكر'; badgeClass = 'badge-danger'; }
 
         processedAdminRecords.push({
-          code: item.code, name: emp.name, deptJob: `${emp.dept} / ${emp.job}`, dept: emp.dept,
+          code: String(item.code).trim(), name: emp.name, deptJob: `${emp.dept} / ${emp.job}`, dept: emp.dept,
           dateFormatted: `${dayName} (${item.dateStr})`, checkIn: formatMinutesToTime(checkInMins),
           checkOut: formatMinutesToTime(checkOutMins), lateStr: lateMins > 0 ? `${lateMins} دقيقة` : '-',
           earlyStr: earlyMins > 0 ? `${earlyMins} دقيقة` : '-', otStr: totalOtMins > 0 ? `${(totalOtMins/60).toFixed(1)} س (${totalOtMins} د)` : '-',
@@ -590,7 +596,7 @@
       let records = processedAdminRecords;
       let employees = globalEmployees;
 
-      if (records.length === 0) {
+      if (!records || records.length === 0) {
         records = JSON.parse(localStorage.getItem('pwa_records_data') || '[]');
         employees = JSON.parse(localStorage.getItem('pwa_emp_data') || '{}');
       }
@@ -606,7 +612,7 @@
         document.getElementById('empProfileDetail').innerText = `بيانات الموظف غير مقيدة بشيت الداتا.`;
       }
 
-      const myRecords = records.filter(r => r.code === code);
+      const myRecords = records.filter(r => String(r.code).trim() === String(code).trim());
       tbody.innerHTML = '';
 
       if (myRecords.length === 0) {
@@ -652,7 +658,7 @@
       const search = document.getElementById('adminSearch').value.toLowerCase();
       const dept = document.getElementById('adminDeptFilter').value;
 
-      const filtered = processedAdminRecords.filter(r => (r.name.toLowerCase().includes(search) || r.code.includes(search)) && (dept === '' || r.dept === dept));
+      const filtered = processedAdminRecords.filter(r => (r.name.toLowerCase().includes(search) || String(r.code).includes(search)) && (dept === '' || r.dept === dept));
       renderAdminTable(filtered);
     }
 
