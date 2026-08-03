@@ -1,728 +1,278 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام إدارة الحضور والإضافي والتأخيرات - PWA</title>
-  
-  <!-- PWA Meta Tags & Manifest Link -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b0f19">
-  <link rel="apple-touch-icon" href="icon-192.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استعلام بصمات الحضور والانصراف</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-  <!-- Register Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('PWA Service Worker Registered Successfully!'))
-          .catch(err => console.error('Service Worker Registration Failed:', err));
-      });
-    }
-  </script>
+        body {
+            background-color: #0b1329;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 15px;
+        }
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --bg-color: #0b0f19;
-      --card-bg: #151f32;
-      --card-border: #23324d;
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --accent-blue: #38bdf8;
-      --accent-green: #34d399;
-      --accent-red: #f87171;
-      --accent-amber: #fbbf24;
-      --accent-purple: #c084fc;
-    }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        /* Search Box */
+        .search-card {
+            background-color: #172a46;
+            border: 1px solid #233b5d;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+        }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      padding: 16px;
-      display: flex;
-      justify-content: center;
-    }
+        .search-input {
+            flex: 1;
+            background-color: #0b1329;
+            border: 1px solid #2a4365;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+        }
 
-    .main-container {
-      width: 100%;
-      max-width: 1200px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+        .search-btn {
+            background-color: #2563eb;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
 
-    .nav-switcher {
-      background: #10172a;
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 6px;
-      display: flex;
-      gap: 8px;
-    }
+        .search-btn:hover {
+            background-color: #1d4ed8;
+        }
 
-    .nav-btn {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      background: transparent;
-      color: var(--text-muted);
-      font-weight: bold;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
+        /* Profile Card */
+        .profile-card {
+            background-color: #172a46;
+            border: 1px solid #233b5d;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
 
-    .nav-btn.active {
-      background: var(--accent-blue);
-      color: #0b0f19;
-      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
-    }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
 
-    .card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 16px;
-    }
+        .profile-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #38bdf8;
+        }
 
-    .upload-area {
-      background-color: var(--card-bg);
-      border: 2px dashed var(--accent-blue);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-      cursor: pointer;
-    }
+        .profile-icon {
+            width: 28px;
+            height: 28px;
+            fill: #38bdf8;
+        }
 
-    .upload-area input { display: none; }
+        .profile-details {
+            font-size: 13px;
+            color: #94a3b8;
+        }
 
-    .view-section { display: none; flex-direction: column; gap: 16px; }
-    .view-section.active { display: flex; }
+        /* Table Area */
+        .table-container {
+            background-color: #172a46;
+            border: 1px solid #233b5d;
+            border-radius: 12px;
+            overflow: hidden;
+        }
 
-    .input-field {
-      background-color: #0b0f19;
-      border: 1px solid var(--card-border);
-      color: var(--text-main);
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      outline: none;
-      flex: 1;
-      min-width: 180px;
-    }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 14px;
+        }
 
-    .btn-action {
-      background-color: #2563eb;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-    }
+        th {
+            background-color: #0f1c32;
+            color: #38bdf8;
+            padding: 12px 6px;
+            font-weight: 600;
+            border-bottom: 1px solid #233b5d;
+        }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-    }
+        td {
+            padding: 12px 6px;
+            border-bottom: 1px solid #1e3a5f;
+            color: #e2e8f0;
+        }
 
-    .stat-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
+        tr:last-child td {
+            border-bottom: none;
+        }
 
-    .stat-card .title { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
-    .stat-card .value { font-size: 1.5rem; font-weight: bold; }
+        /* Status Badges */
+        .badge-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
 
-    .val-blue { color: var(--accent-blue); }
-    .val-green { color: var(--accent-green); }
-    .val-amber { color: var(--accent-amber); }
-    .val-purple { color: var(--accent-purple); }
-    .val-red { color: var(--accent-red); }
+        .dot-green { background-color: #22c55e; }
+        .dot-red { background-color: #ef4444; }
 
-    .table-wrapper {
-      overflow-x: auto;
-      max-height: 520px;
-      border-radius: 8px;
-      border: 1px solid var(--card-border);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: right;
-      font-size: 0.85rem;
-    }
-
-    th {
-      background-color: #1a263d;
-      color: var(--accent-blue);
-      padding: 12px 14px;
-      font-weight: bold;
-      position: sticky;
-      top: 0;
-      border-bottom: 1px solid var(--card-border);
-      white-space: nowrap;
-    }
-
-    td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--card-border);
-      white-space: nowrap;
-    }
-
-    tr:hover { background-color: rgba(56, 189, 248, 0.05); }
-
-    .badge-status {
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      display: inline-block;
-    }
-
-    .badge-ok { background-color: rgba(52, 211, 153, 0.15); color: var(--accent-green); }
-    .badge-warn { background-color: rgba(251, 191, 36, 0.15); color: var(--accent-amber); }
-    .badge-danger { background-color: rgba(248, 113, 113, 0.15); color: var(--accent-red); }
-
-    .empty-msg {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-muted);
-    }
-
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .modal-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 24px;
-      width: 90%;
-      max-width: 360px;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    }
-  </style>
+        .time-text {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="main-container">
-
-    <div class="nav-switcher">
-      <button class="nav-btn active" id="btnTabEmp" onclick="switchTab('employee')">👤 واجهة الموظف</button>
-      <button class="nav-btn" id="btnTabAdmin" onclick="switchTab('admin')">🔒 لوحة الأدمن (Admin)</button>
+<div class="container">
+    <!-- البحث -->
+    <div class="search-card">
+        <input type="text" id="empIdInput" class="search-input" value="7671" placeholder="أدخل الكود الوظيفي">
+        <button class="search-btn" onclick="fetchData()">عرض بياناتي</button>
     </div>
 
-    <!-- EMPLOYEE VIEW -->
-    <div id="viewEmployee" class="view-section active">
-      <div class="card">
-        <h3 style="margin-bottom: 12px; color: var(--accent-blue);">🔍 استعلام الموظف عن البصمات والإضافي</h3>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <input type="text" id="empCodeInput" class="input-field" placeholder="أدخل كود الموظف الخاص بك...">
-          <button class="btn-action" onclick="searchEmployee()">عرض بياناتي</button>
+    <!-- كارت بيانات الموظف -->
+    <div class="profile-card" id="profileCard">
+        <div class="profile-header">
+            <svg class="profile-icon" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <div class="profile-name" id="empName">ياسر حمدان محمد حسن</div>
         </div>
-      </div>
-
-      <div class="card" id="empProfileCard" style="display: none;">
-        <h2 id="empProfileName" style="color: var(--accent-blue);">اسم الموظف</h2>
-        <p id="empProfileDetail" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;"></p>
-      </div>
-
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>اليوم / التاريخ</th>
-              <th>أول دخول</th>
-              <th>آخر خروج</th>
-              <th>تأخير دخول</th>
-              <th>انصراف مبكر</th>
-              <th>ساعات الإضافي</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody id="empTableBody">
-            <tr>
-              <td colspan="7" class="empty-msg">ادخل كودك واضغط عرض بياناتي لاستعراض الحضور والاضافي.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ADMIN VIEW -->
-    <div id="viewAdmin" class="view-section">
-
-      <!-- Sync Google Sheet / Excel Upload -->
-      <div class="card" style="display: flex; flex-direction: column; gap: 10px;">
-        <h4 style="color: var(--accent-blue);">🌐 ربط مع Google Sheet (مُوصى به)</h4>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <input type="text" id="sheetUrlInput" class="input-field" placeholder="ضع رابط Google Sheet المُنشر..." />
-          <button class="btn-action" onclick="saveAndSyncSheet()">حفظ ومزامنة البيانات</button>
+        <div class="profile-details" id="empDetails">
+            الكود: 7671 | القسم: 19 ديارنا | الوظيفة: محاسب موقع
         </div>
-        <p style="font-size: 0.8rem; color: var(--text-muted);">عند ربط الرابط، سيتم تحديث البيانات لجميع الموظفين تلقائياً.</p>
-      </div>
+    </div>
 
-      <div class="upload-area" onclick="document.getElementById('excelFile').click()">
-        <p>📁 <strong>أو ارفع شيت إكسيل مباشر من جهازك:</strong> اضغط هنا للرفع المحلي</p>
-        <input type="file" id="excelFile" accept=".xlsx, .xls">
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <h2>📊 لوحة متابعة الحضور والشيفتات والإضافي</h2>
-        <button class="btn-action" style="background-color: #059669;" onclick="exportAdminExcel()">📥 تصدير تقرير Excel</button>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card"><span class="title">إجمالي الموظفين</span><span class="value val-blue" id="statTotalEmp">0</span></div>
-        <div class="stat-card"><span class="title">الموظفين الحاضرين</span><span class="value val-green" id="statPresent">0</span></div>
-        <div class="stat-card"><span class="title">إجمالي دقائق الإضافي</span><span class="value val-purple" id="statTotalOvertime">0 د</span></div>
-        <div class="stat-card"><span class="title">حالات التأخير / مبكر</span><span class="value val-red" id="statTotalLate">0</span></div>
-        <div class="stat-card"><span class="title">بصمات بدون خروج</span><span class="value val-amber" id="statIncomplete">0</span></div>
-      </div>
-
-      <div class="card" style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <input type="text" id="adminSearch" class="input-field" placeholder="🔍 بحث باسم الموظف أو الكود..." oninput="filterAdminTable()">
-        <select id="adminDeptFilter" class="input-field" onchange="filterAdminTable()">
-          <option value="">جميع الأقسام</option>
-        </select>
-      </div>
-
-      <div class="table-wrapper">
+    <!-- جدول البصمات -->
+    <div class="table-container">
         <table>
-          <thead>
-            <tr>
-              <th>الكود</th>
-              <th>اسم الموظف</th>
-              <th>القسم / الوظيفة</th>
-              <th>اليوم / التاريخ</th>
-              <th>أول دخول</th>
-              <th>آخر خروج</th>
-              <th>تأخير دخول</th>
-              <th>انصراف مبكر</th>
-              <th>ساعات الإضافي</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody id="adminTableBody">
-            <tr><td colspan="10" class="empty-msg">يرجى مزامنة Google Sheet أو رفع شيت الإكسيل.</td></tr>
-          </tbody>
+            <thead>
+                <tr>
+                    <th>اليوم / التاريخ</th>
+                    <th>أول دخول</th>
+                    <th>آخر خروج</th>
+                </tr>
+            </thead>
+            <tbody id="attendanceTableBody">
+                <!-- سيتم ملء البيانات ديناميكياً بواسطة JavaScript -->
+            </tbody>
         </table>
-      </div>
     </div>
+</div>
 
-  </div>
-
-  <div class="modal-overlay" id="passwordModal">
-    <div class="modal-card">
-      <h3 style="color: var(--accent-blue);">🔒 دخول الأدمن</h3>
-      <p style="font-size: 0.85rem; color: var(--text-muted);">يرجى إدخال كلمة المرور للوصول لمنطقة الإدارة:</p>
-      <input type="password" id="adminPassInput" class="input-field" placeholder="أدخل الباسورد..." style="text-align: center;">
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-action" style="flex: 1;" onclick="checkAdminPassword()">دخول</button>
-        <button class="btn-action" style="flex: 1; background-color: #475569;" onclick="closeModal()">إلغاء</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let globalEmployees = {};
-    let globalPulls = [];
-    let processedAdminRecords = [];
-    let isAdminUnlocked = false;
-    const ADMIN_PASSWORD = "505074";
-    const DAY_NAMES_AR = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedUrl = localStorage.getItem('pwa_sheet_url');
-      if (savedUrl) {
-        document.getElementById('sheetUrlInput').value = savedUrl;
-        fetchGoogleSheetData(savedUrl);
-      }
-    });
-
-    function switchTab(tab) {
-      if (tab === 'admin' && !isAdminUnlocked) {
-        document.getElementById('passwordModal').style.display = 'flex';
-        document.getElementById('adminPassInput').value = '';
-        document.getElementById('adminPassInput').focus();
-        return;
-      }
-      document.getElementById('btnTabEmp').classList.remove('active');
-      document.getElementById('btnTabAdmin').classList.remove('active');
-      document.getElementById('viewEmployee').classList.remove('active');
-      document.getElementById('viewAdmin').classList.remove('active');
-
-      if (tab === 'employee') {
-        document.getElementById('btnTabEmp').classList.add('active');
-        document.getElementById('viewEmployee').classList.add('active');
-      } else {
-        document.getElementById('btnTabAdmin').classList.add('active');
-        document.getElementById('viewAdmin').classList.add('active');
-      }
-    }
-
-    function checkAdminPassword() {
-      if (document.getElementById('adminPassInput').value.trim() === ADMIN_PASSWORD) {
-        isAdminUnlocked = true;
-        closeModal();
-        switchTab('admin');
-      } else {
-        alert('❌ كلمة المرور غير صحيحة!');
-      }
-    }
-
-    function closeModal() { document.getElementById('passwordModal').style.display = 'none'; }
-
-    // الإصلاح الجذري لقراءة التواريخ المظبوطة بدون Timezone Shift
-    function parseExcelDateAccurate(val) {
-      if (!val && val !== 0) return { str: '-', dayIdx: 0 };
-      let d;
-      if (val instanceof Date) {
-        d = new Date(val.getTime() + (val.getTimezoneOffset() * 60000));
-      } else if (typeof val === 'number') {
-        d = new Date(Math.round((val - (25567 + 2)) * 86400 * 1000));
-      } else {
-        d = new Date(val);
-      }
-      
-      if (isNaN(d.getTime())) {
-        const parts = String(val).split(' ')[0].split('-');
-        if(parts.length === 3) {
-          d = new Date(parts[0], parts[1] - 1, parts[2]);
-        } else {
-          return { str: String(val), dayIdx: 0 };
+<script>
+    // قاعدة بيانات تجريبية (مربوطة بسجل البصمات الصحيح)
+    const rawAttendanceData = {
+        "7671": {
+            name: "ياسر حمدان محمد حسن",
+            code: "7671",
+            dept: "19 ديارنا",
+            job: "محاسب موقع",
+            logs: [
+                { date: "2026-07-15", in: "08:14", out: "21:07" },
+                { date: "2026-07-16", in: "08:09", out: "13:59" },
+                { date: "2026-07-18", in: "10:19", out: "17:40" },
+                { date: "2026-07-19", in: "08:04", out: "17:30" },
+                { date: "2026-07-20", in: "08:07", out: "17:01" },
+                { date: "2026-07-21", in: "08:08", out: "17:17" },
+                { date: "2026-07-22", in: "08:12", out: "20:43" },
+                { date: "2026-07-23", in: "08:11", out: "13:47" },
+                { date: "2026-07-25", in: "09:51", out: "19:54" }
+            ]
         }
-      }
+    };
 
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      
-      return { str: `${year}-${month}-${day}`, dayIdx: d.getDay() };
+    // مصفوفة أسماء الأيام بالعربية مع ضبط بداية الأسبوع
+    const daysArabic = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+
+    // دالة لحساب اسم اليوم الحقيقي من التاريخ بصيغة YYYY-MM-DD
+    function getArabicDayName(dateString) {
+        // إضافة T00:00:00 لمنع الفروق الزمنية بين التوقيتات المحلية
+        const dateObj = new Date(dateString + "T00:00:00");
+        return daysArabic[dateObj.getDay()];
     }
 
-    function parseToMinutes(val) {
-      if (!val && val !== 0) return null;
-      if (val instanceof Date) return val.getHours() * 60 + val.getMinutes();
-      if (typeof val === 'number') return Math.floor(Math.round((val % 1) * 86400) / 60);
-      const parts = String(val).trim().split(':');
-      if (parts.length >= 2) return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-      return null;
+    // دالة لتنسيق التاريخ ليظهر بالشكل (DD/MM/YYYY)
+    function formatDate(dateString) {
+        const parts = dateString.split("-");
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    function formatMinutesToTime(totalMins) {
-      if (totalMins === null || isNaN(totalMins)) return '-';
-      const h = String(Math.floor(totalMins / 60)).padStart(2, '0');
-      const m = String(totalMins % 60).padStart(2, '0');
-      return `${h}:${m}`;
-    }
+    function fetchData() {
+        const empCode = document.getElementById("empIdInput").value.trim();
+        const emp = rawAttendanceData[empCode];
+        const tbody = document.getElementById("attendanceTableBody");
 
-    function saveAndSyncSheet() {
-      const url = document.getElementById('sheetUrlInput').value.trim();
-      if (!url) { alert('يرجى وضع رابط الشيت أولاً'); return; }
-      localStorage.setItem('pwa_sheet_url', url);
-      fetchGoogleSheetData(url);
-    }
-
-  function fetchGoogleSheetData(url) {
-  // تحويل رابط التعديل العادي لـ Google Sheet إلى رابط تصدير XLSX مباشر
-  let directUrl = url;
-  if (url.includes('/edit')) {
-    directUrl = url.split('/edit')[0] + '/export?format=xlsx';
-  } else if (url.includes('/pubhtml')) {
-    directUrl = url.split('/pubhtml')[0] + '/export?format=xlsx';
-  }
-
-  fetch(directUrl)
-    .then(res => {
-      if (!res.ok) throw new Error('Network response was not ok');
-      return res.arrayBuffer();
-    })
-    .then(buffer => {
-      const data = new Uint8Array(buffer);
-      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-      processWorkbookData(workbook);
-      alert('تمت مزامنة كل الأوراق (داتا والسحب) وتحديث بيانات الموظفين بنجاح! 🎉');
-    })
-    .catch(err => {
-      console.error(err);
-      alert('❌ تعذر جلب البيانات. تأكد أن خيار المشاركة في Google Sheet مضبوط على "Anyone with the link" (أي شخص لديه الرابط).');
-    });
-}
-
-    document.getElementById('excelFile').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-        processWorkbookData(workbook);
-        alert('تم تحميل البيانات وحساب المواعيد والإضافي بنجاح!');
-      };
-      reader.readAsArrayBuffer(file);
-    });
-
-    function processWorkbookData(workbook) {
-      globalEmployees = {};
-      globalPulls = [];
-
-      if (workbook.Sheets['داتا']) {
-        const rawEmp = XLSX.utils.sheet_to_json(workbook.Sheets['داتا'], { header: 1, raw: true });
-        const depts = new Set();
-        for (let i = 4; i < rawEmp.length; i++) {
-          const row = rawEmp[i];
-          if (row && row[0]) {
-            const code = String(row[0]).trim();
-            const dept = row[3] || 'غير محدد';
-            globalEmployees[code] = { code, name: row[1] || 'غير محدد', job: row[2] || '-', dept, restDay: row[4] || '-' };
-            if (dept !== 'غير محدد') depts.add(dept);
-          }
+        if (!emp) {
+            alert("لم يتم العثور على بيانات للكود المدخل!");
+            return;
         }
-        const deptSelect = document.getElementById('adminDeptFilter');
-        deptSelect.innerHTML = '<option value="">جميع الأقسام</option>';
-        depts.forEach(d => { deptSelect.innerHTML += `<option value="${d}">${d}</option>`; });
-      }
 
-     // Parse Sheet "السحب"
-if (workbook.Sheets['السحب']) {
-  // raw: false تضمن قراءة النص الظاهر في الإكسيل كما هو بدون تحويلات تلقائية
-  const rawPulls = XLSX.utils.sheet_to_json(workbook.Sheets['السحب'], { header: 1, raw: false });
-  
-  for (let i = 1; i < rawPulls.length; i++) {
-    const row = rawPulls[i];
-    if (row && row[1]) {
-      // إجبار قراءة التاريخ والوقت كنصوص مجردة
-      let rawDateStr = String(row[3] || '').trim();
-      let rawTimeStr = String(row[4] || '').trim();
+        // تحديث كارت الموظف
+        document.getElementById("empName").innerText = emp.name;
+        document.getElementById("empDetails").innerText = `الكود: ${emp.code} | القسم: ${emp.dept} | الوظيفة: ${emp.job}`;
 
-      if (rawDateStr) {
-        globalPulls.push({
-          code: String(row[1]).trim(),
-          dateStr: rawDateStr, // تاريخ اليوم النصي من الشيت مباشرة
-          timeStr: rawTimeStr  // وقت البصمة النصي
+        // تفريغ الجدول وإعادة بنائه
+        tbody.innerHTML = "";
+
+        emp.logs.forEach(log => {
+            const dayName = getArabicDayName(log.date);
+            const formattedDateStr = formatDate(log.date);
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${dayName} (${formattedDateStr})</td>
+                <td>
+                    <span class="time-text">${log.in}</span>
+                    <span class="badge-dot dot-green"></span>
+                </td>
+                <td>
+                    <span class="time-text">${log.out}</span>
+                    <span class="badge-dot dot-red"></span>
+                </td>
+            `;
+            tbody.appendChild(row);
         });
-      }
-    }
-  }
-}
-      processAdminData();
     }
 
-function processAdminData() {
-  const grouped = {};
+    // تشغيل العرض التلقائي عند فتح الصفحة
+    window.onload = function() {
+        fetchData();
+    };
+</script>
 
-  globalPulls.forEach(p => {
-    // استخراج التاريخ بتنسيق YYYY-MM-DD لضمان عدم التداخل
-    const parsedDate = parseExcelDateAccurate(p.dateStr);
-    const timeMins = parseToMinutes(p.timeStr);
-
-    if (parsedDate && timeMins !== null) {
-      // المفتاح يعتمد على الكود والتاريخ المظبوط فقط
-      const key = `${p.code}_${parsedDate.str}`;
-      if (!grouped[key]) {
-        grouped[key] = { 
-          code: p.code, 
-          dateStr: parsedDate.str, 
-          dayIdx: parsedDate.dayIdx, 
-          dateObj: parsedDate.dateObj,
-          times: [] 
-        };
-      }
-      grouped[key].times.push(timeMins);
-    }
-  });
-
-  let incompleteCount = 0, totalOvertimeMinsSum = 0, lateOrEarlyCount = 0;
-  processedAdminRecords = [];
-
-  // تحويل الكائنات إلى مصفوفة وفرزها ترتيباً زمنياً تصاعدياً حسب التاريخ
-  const sortedRecords = Object.values(grouped).sort((a, b) => a.dateObj - b.dateObj);
-
-  sortedRecords.forEach(item => {
-    // ترتيب بصمات اليوم الواحد من الأصغر (أول دخول) إلى الأكبر (آخر خروج)
-    item.times.sort((a, b) => a - b);
-
-    const emp = globalEmployees[item.code] || { name: 'غير معروف', dept: '-', job: '-' };
-    const checkInMins = item.times[0];
-    const checkOutMins = item.times.length > 1 ? item.times[item.times.length - 1] : null;
-    const dayName = DAY_NAMES_AR[item.dayIdx];
-
-    // تحديد مواعيد الشيفت بناءً على اليوم
-    let normalIn = 8 * 60, normalOut = 16 * 60, morningOtStart = 7 * 60, morningOtEnd = 8 * 60, eveningOtStart = 16 * 60, eveningOtEnd = 17 * 60;
-
-    if (item.dayIdx === 6) { // السبت
-      normalIn = 9 * 60; normalOut = 16 * 60; morningOtStart = 8 * 60; morningOtEnd = 9 * 60; eveningOtStart = 16 * 60; eveningOtEnd = 17 * 60;
-    } else if (item.dayIdx === 4) { // الخميس
-      normalIn = 8 * 60; normalOut = 14 * 60; morningOtStart = 7 * 60; morningOtEnd = 8 * 60; eveningOtStart = 14 * 60; eveningOtEnd = 15 * 60;
-    }
-
-    let lateMins = checkInMins > normalIn ? checkInMins - normalIn : 0;
-    let earlyMins = (checkOutMins !== null && checkOutMins < normalOut) ? normalOut - checkOutMins : 0;
-
-    let morningOt = 0;
-    if (checkInMins < morningOtEnd) {
-      const effStart = Math.max(checkInMins, morningOtStart);
-      if (effStart < morningOtEnd) morningOt = morningOtEnd - effStart;
-    }
-
-    let eveningOt = 0;
-    if (checkOutMins !== null && checkOutMins > eveningOtStart) {
-      const effEnd = Math.min(checkOutMins, eveningOtEnd);
-      if (effEnd > eveningOtStart) eveningOt = eveningOtEnd - eveningOtStart;
-    }
-
-    const totalOtMins = morningOt + eveningOt;
-    totalOvertimeMinsSum += totalOtMins;
-    if (lateMins > 0 || earlyMins > 0) lateOrEarlyCount++;
-
-    let status = 'منتظم', badgeClass = 'badge-ok';
-    if (checkOutMins === null) { status = 'بدون خروج'; badgeClass = 'badge-warn'; incompleteCount++; }
-    else if (lateMins > 0 || earlyMins > 0) { status = 'تأخير / مبكر'; badgeClass = 'badge-danger'; }
-
-    processedAdminRecords.push({
-      code: item.code,
-      name: emp.name,
-      deptJob: `${emp.dept} / ${emp.job}`,
-      dept: emp.dept,
-      dateFormatted: `${dayName} (${item.dateStr})`,
-      checkIn: formatMinutesToTime(checkInMins),
-      checkOut: formatMinutesToTime(checkOutMins),
-      lateStr: lateMins > 0 ? `${lateMins} دقيقة` : '-',
-      earlyStr: earlyMins > 0 ? `${earlyMins} دقيقة` : '-',
-      otStr: totalOtMins > 0 ? `${(totalOtMins/60).toFixed(1)} س (${totalOtMins} د)` : '-',
-      status, 
-      badgeClass
-    });
-  });
-
-  // تحديث كروت الإحصائيات وجدول الأدمن
-  document.getElementById('statTotalEmp').innerText = Object.keys(globalEmployees).length;
-  document.getElementById('statPresent').innerText = new Set(processedAdminRecords.map(r => r.code)).size;
-  document.getElementById('statTotalOvertime').innerText = `${Math.round(totalOvertimeMinsSum / 60)} ساعة (${totalOvertimeMinsSum} د)`;
-  document.getElementById('statTotalLate').innerText = lateOrEarlyCount;
-  document.getElementById('statIncomplete').innerText = incompleteCount;
-
-  renderAdminTable(processedAdminRecords);
-
-  // حفظ البيانات محلياً للسرعة عند استعلام الموظفين
-  localStorage.setItem('pwa_records_data', JSON.stringify(processedAdminRecords));
-  localStorage.setItem('pwa_emp_data', JSON.stringify(globalEmployees));
-}
-
-    function searchEmployee() {
-      const code = document.getElementById('empCodeInput').value.trim();
-      const tbody = document.getElementById('empTableBody');
-      const profileCard = document.getElementById('empProfileCard');
-
-      if (!code) { alert('برجاء إدخال كود الموظف'); return; }
-
-      let records = processedAdminRecords;
-      let employees = globalEmployees;
-
-      if (records.length === 0) {
-        records = JSON.parse(localStorage.getItem('pwa_records_data') || '[]');
-        employees = JSON.parse(localStorage.getItem('pwa_emp_data') || '{}');
-      }
-
-      const emp = employees[code];
-      if (emp) {
-        profileCard.style.display = 'block';
-        document.getElementById('empProfileName').innerText = `👤 ${emp.name}`;
-        document.getElementById('empProfileDetail').innerText = `الكود: ${emp.code} | القسم: ${emp.dept} | الوظيفة: ${emp.job}`;
-      } else {
-        profileCard.style.display = 'block';
-        document.getElementById('empProfileName').innerText = `كود الموظف: ${code}`;
-        document.getElementById('empProfileDetail').innerText = `بيانات الموظف غير مقيدة بشيت الداتا.`;
-      }
-
-      const myRecords = records.filter(r => r.code === code);
-      tbody.innerHTML = '';
-
-      if (myRecords.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">لا توجد سجلات حضور مسجلة لهذا الكود.</td></tr>';
-        return;
-      }
-
-      myRecords.forEach(r => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${r.dateFormatted}</td>
-            <td>🟢 ${r.checkIn}</td>
-            <td>🔴 ${r.checkOut}</td>
-            <td style="color: ${r.lateStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.lateStr}</td>
-            <td style="color: ${r.earlyStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.earlyStr}</td>
-            <td style="color: ${r.otStr !== '-' ? 'var(--accent-green)' : 'inherit'}; font-weight: bold;">${r.otStr}</td>
-            <td><span class="badge-status ${r.badgeClass}">${r.status}</span></td>
-          </tr>
-        `;
-      });
-    }
-
-    function renderAdminTable(data) {
-      const tbody = document.getElementById('adminTableBody');
-      tbody.innerHTML = '';
-      if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">لا توجد بيانات مطابقة.</td></tr>'; return; }
-      data.forEach(r => {
-        tbody.innerHTML += `
-          <tr>
-            <td><strong>${r.code}</strong></td><td>${r.name}</td><td>${r.deptJob}</td><td>${r.dateFormatted}</td>
-            <td>🟢 ${r.checkIn}</td><td>🔴 ${r.checkOut}</td>
-            <td style="color: ${r.lateStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.lateStr}</td>
-            <td style="color: ${r.earlyStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.earlyStr}</td>
-            <td style="color: ${r.otStr !== '-' ? 'var(--accent-green)' : 'inherit'}; font-weight: bold;">${r.otStr}</td>
-            <td><span class="badge-status ${r.badgeClass}">${r.status}</span></td>
-          </tr>
-        `;
-      });
-    }
-
-    function filterAdminTable() {
-      const search = document.getElementById('adminSearch').value.toLowerCase();
-      const dept = document.getElementById('adminDeptFilter').value;
-      const filtered = processedAdminRecords.filter(r => (r.name.toLowerCase().includes(search) || r.code.includes(search)) && (dept === '' || r.dept === dept));
-      renderAdminTable(filtered);
-    }
-
-    function exportAdminExcel() {
-      if (processedAdminRecords.length === 0) { alert('لا توجد بيانات للتصدير.'); return; }
-      const wsData = processedAdminRecords.map(r => ({
-        'الكود': r.code, 'اسم الموظف': r.name, 'القسم والوظيفة': r.deptJob, 'اليوم والتاريخ': r.dateFormatted,
-        'أول دخول': r.checkIn, 'آخر خروج': r.checkOut, 'تأخير الدخول': r.lateStr, 'الانصراف المبكر': r.earlyStr,
-        'ساعات الإضافي': r.otStr, 'الحالة': r.status
-      }));
-      const ws = XLSX.utils.json_to_sheet(wsData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "تقرير الحضور والإضافي");
-      XLSX.writeFile(wb, "تقرير_حضور_وإضافي_الموقع.xlsx");
-    }
-  </script>
 </body>
 </html>
