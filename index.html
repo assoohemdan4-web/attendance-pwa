@@ -4,56 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>نظام إدارة الحضور والإضافي والتأخيرات - PWA</title>
-  
+
   <!-- PWA Meta Tags & Manifest Link -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b0f19">
-  <link rel="apple-touch-icon" href="icon-192.png">
-
-  <!-- Register Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('PWA Service Worker Registered Successfully!'))
-          .catch(err => console.error('Service Worker Registration Failed:', err));
-      });
-    }
-  </script>
-
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <style>
     :root {
-      --bg-color: #0b0f19;
-      --card-bg: #151f32;
-      --card-border: #23324d;
-      --text-main: #f1f5f9;
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --accent-blue: #38bdf8;
-      --accent-green: #34d399;
+      --accent-green: #4ade80;
+      --accent-purple: #c084fc;
       --accent-red: #f87171;
       --accent-amber: #fbbf24;
-      --accent-purple: #c084fc;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
+      min-height: 100vh;
       padding: 16px;
-      display: flex;
-      justify-content: center;
     }
 
     .main-container {
-      width: 100%;
       max-width: 1200px;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
+    /* Top Navigation / Mode Switcher */
     .nav-switcher {
       background: #10172a;
       border: 1px solid var(--card-border);
@@ -70,22 +57,19 @@
       border-radius: 8px;
       background: transparent;
       color: var(--text-muted);
+      font-size: 1rem;
       font-weight: bold;
-      font-size: 0.95rem;
       cursor: pointer;
       transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
     }
 
     .nav-btn.active {
-      background: var(--accent-blue);
-      color: #0b0f19;
+      background-color: var(--card-bg);
+      color: var(--accent-blue);
       box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
     }
 
+    /* Common Card Styles */
     .card {
       background-color: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -93,42 +77,44 @@
       padding: 16px;
     }
 
+    /* Upload Box - Admin Only */
     .upload-area {
       background-color: var(--card-bg);
       border: 2px dashed var(--accent-blue);
       border-radius: 12px;
-      padding: 16px;
+      padding: 24px;
       text-align: center;
       cursor: pointer;
     }
 
     .upload-area input { display: none; }
 
+    /* Views */
     .view-section { display: none; flex-direction: column; gap: 16px; }
     .view-section.active { display: flex; }
 
+    /* Inputs & Buttons */
     .input-field {
       background-color: #0b0f19;
       border: 1px solid var(--card-border);
-      color: var(--text-main);
+      color: #fff;
       padding: 10px 14px;
       border-radius: 8px;
-      font-size: 0.9rem;
       outline: none;
-      flex: 1;
-      min-width: 180px;
+      font-size: 0.95rem;
     }
 
     .btn-action {
-      background-color: #2563eb;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      border: none;
+      background-color: var(--accent-blue);
+      color: #000;
       font-weight: bold;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
       cursor: pointer;
     }
 
+    /* Stats Grid */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -138,95 +124,89 @@
     .stat-card {
       background-color: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 14px;
+      border-radius: 10px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
 
-    .stat-card .title { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
-    .stat-card .value { font-size: 1.5rem; font-weight: bold; }
+    .stat-card .title { font-size: 0.85rem; color: var(--text-muted); }
+    .stat-card .value { font-size: 1.4rem; font-weight: bold; }
 
     .val-blue { color: var(--accent-blue); }
     .val-green { color: var(--accent-green); }
-    .val-amber { color: var(--accent-amber); }
     .val-purple { color: var(--accent-purple); }
     .val-red { color: var(--accent-red); }
+    .val-amber { color: var(--accent-amber); }
 
+    /* Tables */
     .table-wrapper {
       overflow-x: auto;
       max-height: 520px;
-      border-radius: 8px;
       border: 1px solid var(--card-border);
+      border-radius: 10px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      text-align: right;
-      font-size: 0.85rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--card-border);
+      white-space: nowrap;
     }
 
     th {
-      background-color: #1a263d;
+      background-color: #0b0f19;
       color: var(--accent-blue);
-      padding: 12px 14px;
-      font-weight: bold;
       position: sticky;
       top: 0;
-      border-bottom: 1px solid var(--card-border);
-      white-space: nowrap;
+      z-index: 2;
     }
 
-    td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--card-border);
-      white-space: nowrap;
-    }
+    tr:hover { background-color: rgba(255, 255, 255, 0.02); }
 
-    tr:hover { background-color: rgba(56, 189, 248, 0.05); }
-
-    .badge-status {
+    .badge {
       padding: 4px 8px;
       border-radius: 6px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: bold;
     }
 
-    .badge-ok { background-color: rgba(52, 211, 153, 0.15); color: var(--accent-green); }
-    .badge-warn { background-color: rgba(251, 191, 36, 0.15); color: var(--accent-amber); }
-    .badge-danger { background-color: rgba(248, 113, 113, 0.15); color: var(--accent-red); }
+    .badge-ok { background: rgba(74, 222, 128, 0.15); color: var(--accent-green); }
+    .badge-danger { background: rgba(248, 113, 113, 0.15); color: var(--accent-red); }
+    .badge-warn { background: rgba(251, 191, 36, 0.15); color: var(--accent-amber); }
 
     .empty-msg {
-      text-align: center;
-      padding: 40px 20px;
+      padding: 30px;
       color: var(--text-muted);
     }
 
+    /* Modal / Password Overlay */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.7);
       display: none;
-      align-items: center;
       justify-content: center;
-      z-index: 1000;
+      align-items: center;
+      z-index: 99;
     }
 
     .modal-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 24px;
-      width: 90%;
-      max-width: 360px;
-      text-align: center;
+      width: 320px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      gap: 14px;
     }
   </style>
 </head>
@@ -234,31 +214,34 @@
 
   <div class="main-container">
 
+    <!-- Top Switcher -->
     <div class="nav-switcher">
       <button class="nav-btn active" id="btnTabEmp" onclick="switchTab('employee')">👤 واجهة الموظف</button>
       <button class="nav-btn" id="btnTabAdmin" onclick="switchTab('admin')">🔒 لوحة الأدمن (Admin)</button>
     </div>
 
-    <!-- EMPLOYEE VIEW -->
+    <!-- SECTION 1: EMPLOYEE VIEW -->
     <div id="viewEmployee" class="view-section active">
       <div class="card">
         <h3 style="margin-bottom: 12px; color: var(--accent-blue);">🔍 استعلام الموظف عن البصمات والإضافي</h3>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <input type="text" id="empCodeInput" class="input-field" placeholder="أدخل كود الموظف الخاص بك...">
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="empCodeInput" class="input-field" placeholder="أدخل كود الموظف..." style="flex: 1;" />
           <button class="btn-action" onclick="searchEmployee()">عرض بياناتي</button>
         </div>
       </div>
 
+      <!-- Employee Info Banner -->
       <div class="card" id="empProfileCard" style="display: none;">
         <h2 id="empProfileName" style="color: var(--accent-blue);">اسم الموظف</h2>
         <p id="empProfileDetail" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;"></p>
       </div>
 
+      <!-- Employee Records Table -->
       <div class="table-wrapper">
         <table>
           <thead>
             <tr>
-              <th>اليوم / التاريخ</th>
+              <th>اليوم والتاريخ</th>
               <th>أول دخول</th>
               <th>آخر خروج</th>
               <th>تأخير دخول</th>
@@ -276,14 +259,14 @@
       </div>
     </div>
 
-    <!-- ADMIN VIEW -->
+    <!-- SECTION 2: ADMIN VIEW -->
     <div id="viewAdmin" class="view-section">
 
       <!-- Sync Google Sheet / Excel Upload -->
       <div class="card" style="display: flex; flex-direction: column; gap: 10px;">
         <h4 style="color: var(--accent-blue);">🌐 ربط مع Google Sheet (مُوصى به)</h4>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <input type="text" id="sheetUrlInput" class="input-field" placeholder="ضع رابط Google Sheet المُنشر..." />
+          <input type="text" id="sheetUrlInput" class="input-field" placeholder="ضع رابط Google Sheet المُنشر..." style="flex: 1;" />
           <button class="btn-action" onclick="saveAndSyncSheet()">حفظ ومزامنة البيانات</button>
         </div>
         <p style="font-size: 0.8rem; color: var(--text-muted);">عند ربط الرابط، سيتم تحديث البيانات لجميع الموظفين تلقائياً.</p>
@@ -294,11 +277,13 @@
         <input type="file" id="excelFile" accept=".xlsx, .xls">
       </div>
 
+      <!-- Header Admin Action -->
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h2>📊 لوحة متابعة الحضور والشيفتات والإضافي</h2>
-        <button class="btn-action" style="background-color: #059669;" onclick="exportAdminExcel()">📥 تصدير تقرير Excel</button>
+        <button class="btn-action" style="background-color: #059669; color: white;" onclick="exportAdminExcel()">📥 تصدير تقرير Excel</button>
       </div>
 
+      <!-- Admin Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card"><span class="title">إجمالي الموظفين</span><span class="value val-blue" id="statTotalEmp">0</span></div>
         <div class="stat-card"><span class="title">الموظفين الحاضرين</span><span class="value val-green" id="statPresent">0</span></div>
@@ -307,13 +292,15 @@
         <div class="stat-card"><span class="title">بصمات بدون خروج</span><span class="value val-amber" id="statIncomplete">0</span></div>
       </div>
 
+      <!-- Admin Filters -->
       <div class="card" style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <input type="text" id="adminSearch" class="input-field" placeholder="🔍 بحث باسم الموظف أو الكود..." oninput="filterAdminTable()">
+        <input type="text" id="adminSearch" class="input-field" placeholder="🔍 بحث باسم الموظف أو الكود..." oninput="filterAdminTable()" style="flex: 1;">
         <select id="adminDeptFilter" class="input-field" onchange="filterAdminTable()">
           <option value="">جميع الأقسام</option>
         </select>
       </div>
 
+      <!-- Admin Table -->
       <div class="table-wrapper">
         <table>
           <thead>
@@ -321,7 +308,7 @@
               <th>الكود</th>
               <th>اسم الموظف</th>
               <th>القسم / الوظيفة</th>
-              <th>اليوم / التاريخ</th>
+              <th>اليوم والتاريخ</th>
               <th>أول دخول</th>
               <th>آخر خروج</th>
               <th>تأخير دخول</th>
@@ -339,6 +326,7 @@
 
   </div>
 
+  <!-- PASSWORD MODAL -->
   <div class="modal-overlay" id="passwordModal">
     <div class="modal-card">
       <h3 style="color: var(--accent-blue);">🔒 دخول الأدمن</h3>
@@ -346,7 +334,7 @@
       <input type="password" id="adminPassInput" class="input-field" placeholder="أدخل الباسورد..." style="text-align: center;">
       <div style="display: flex; gap: 8px;">
         <button class="btn-action" style="flex: 1;" onclick="checkAdminPassword()">دخول</button>
-        <button class="btn-action" style="flex: 1; background-color: #475569;" onclick="closeModal()">إلغاء</button>
+        <button class="btn-action" style="flex: 1; background-color: #475569; color: white;" onclick="closeModal()">إلغاء</button>
       </div>
     </div>
   </div>
@@ -357,6 +345,7 @@
     let processedAdminRecords = [];
     let isAdminUnlocked = false;
     const ADMIN_PASSWORD = "505074";
+
     const DAY_NAMES_AR = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -374,6 +363,7 @@
         document.getElementById('adminPassInput').focus();
         return;
       }
+
       document.getElementById('btnTabEmp').classList.remove('active');
       document.getElementById('btnTabAdmin').classList.remove('active');
       document.getElementById('viewEmployee').classList.remove('active');
@@ -394,7 +384,7 @@
         closeModal();
         switchTab('admin');
       } else {
-        alert('❌ كلمة المرور غير صحيحة!');
+        alert('كلمة المرور غير صحيحة!');
       }
     }
 
@@ -411,7 +401,7 @@
       } else {
         d = new Date(val);
       }
-      
+
       if (isNaN(d.getTime())) {
         const parts = String(val).split(' ')[0].split('-');
         if(parts.length === 3) {
@@ -437,10 +427,10 @@
       return null;
     }
 
-    function formatMinutesToTime(totalMins) {
-      if (totalMins === null || isNaN(totalMins)) return '-';
-      const h = String(Math.floor(totalMins / 60)).padStart(2, '0');
-      const m = String(totalMins % 60).padStart(2, '0');
+    function formatMinutesToTime(mins) {
+      if (mins === null || isNaN(mins)) return '-';
+      const h = String(Math.floor(mins / 60)).padStart(2, '0');
+      const m = String(mins % 60).padStart(2, '0');
       return `${h}:${m}`;
     }
 
@@ -469,6 +459,7 @@
     document.getElementById('excelFile').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file) return;
+
       const reader = new FileReader();
       reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
@@ -517,6 +508,7 @@
       globalPulls.forEach(p => {
         const dateObj = parseExcelDateAccurate(p.dateVal);
         const timeMins = parseToMinutes(p.timeVal);
+        
         if (timeMins !== null) {
           const key = `${p.code}_${dateObj.str}`;
           if (!grouped[key]) grouped[key] = { code: p.code, dateStr: dateObj.str, dayIdx: dateObj.dayIdx, times: [] };
@@ -529,9 +521,11 @@
 
       Object.values(grouped).forEach(item => {
         item.times.sort((a, b) => a - b);
+
         const emp = globalEmployees[item.code] || { name: 'غير معروف', dept: '-', job: '-' };
         const checkInMins = item.times[0];
         const checkOutMins = item.times.length > 1 ? item.times[item.times.length - 1] : null;
+
         const dayName = DAY_NAMES_AR[item.dayIdx];
 
         let normalIn = 8 * 60, normalOut = 16 * 60, morningOtStart = 7 * 60, morningOtEnd = 8 * 60, eveningOtStart = 16 * 60, eveningOtEnd = 17 * 60;
@@ -554,11 +548,12 @@
         let eveningOt = 0;
         if (checkOutMins !== null && checkOutMins > eveningOtStart) {
           const effEnd = Math.min(checkOutMins, eveningOtEnd);
-          if (effEnd > eveningOtStart) eveningOt = eveningOtEnd - eveningOtStart;
+          if (effEnd > eveningOtStart) eveningOt = effEnd - eveningOtStart;
         }
 
         const totalOtMins = morningOt + eveningOt;
         totalOvertimeMinsSum += totalOtMins;
+
         if (lateMins > 0 || earlyMins > 0) lateOrEarlyCount++;
 
         let status = 'منتظم', badgeClass = 'badge-ok';
@@ -574,14 +569,13 @@
         });
       });
 
-      document.getElementById('statTotalEmp').innerText = Object.keys(globalEmployees).length;
-      document.getElementById('statPresent').innerText = new Set(processedAdminRecords.map(r => r.code)).size;
-      document.getElementById('statTotalOvertime').innerText = `${Math.round(totalOvertimeMinsSum / 60)} ساعة (${totalOvertimeMinsSum} د)`;
+      document.getElementById('statTotalEmp').innerText = Object.keys(globalEmployees).length || processedAdminRecords.length;
+      document.getElementById('statPresent').innerText = processedAdminRecords.length;
+      document.getElementById('statTotalOvertime').innerText = `${totalOvertimeMinsSum} د`;
       document.getElementById('statTotalLate').innerText = lateOrEarlyCount;
       document.getElementById('statIncomplete').innerText = incompleteCount;
 
       renderAdminTable(processedAdminRecords);
-      // حفظ البيانات محلياً للموظفين
       localStorage.setItem('pwa_records_data', JSON.stringify(processedAdminRecords));
       localStorage.setItem('pwa_emp_data', JSON.stringify(globalEmployees));
     }
@@ -616,20 +610,20 @@
       tbody.innerHTML = '';
 
       if (myRecords.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">لا توجد سجلات حضور مسجلة لهذا الكود.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">لا توجد سجلات بصمة مرتبطة بهذ الكود.</td></tr>';
         return;
       }
 
       myRecords.forEach(r => {
         tbody.innerHTML += `
           <tr>
-            <td>${r.dateFormatted}</td>
+            <td><strong>${r.dateFormatted}</strong></td>
             <td>🟢 ${r.checkIn}</td>
             <td>🔴 ${r.checkOut}</td>
             <td style="color: ${r.lateStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.lateStr}</td>
             <td style="color: ${r.earlyStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.earlyStr}</td>
             <td style="color: ${r.otStr !== '-' ? 'var(--accent-green)' : 'inherit'}; font-weight: bold;">${r.otStr}</td>
-            <td><span class="badge-status ${r.badgeClass}">${r.status}</span></td>
+            <td><span class="badge ${r.badgeClass}">${r.status}</span></td>
           </tr>
         `;
       });
@@ -638,6 +632,7 @@
     function renderAdminTable(data) {
       const tbody = document.getElementById('adminTableBody');
       tbody.innerHTML = '';
+
       if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">لا توجد بيانات مطابقة.</td></tr>'; return; }
       data.forEach(r => {
         tbody.innerHTML += `
@@ -647,7 +642,7 @@
             <td style="color: ${r.lateStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.lateStr}</td>
             <td style="color: ${r.earlyStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.earlyStr}</td>
             <td style="color: ${r.otStr !== '-' ? 'var(--accent-green)' : 'inherit'}; font-weight: bold;">${r.otStr}</td>
-            <td><span class="badge-status ${r.badgeClass}">${r.status}</span></td>
+            <td><span class="badge ${r.badgeClass}">${r.status}</span></td>
           </tr>
         `;
       });
@@ -656,6 +651,7 @@
     function filterAdminTable() {
       const search = document.getElementById('adminSearch').value.toLowerCase();
       const dept = document.getElementById('adminDeptFilter').value;
+
       const filtered = processedAdminRecords.filter(r => (r.name.toLowerCase().includes(search) || r.code.includes(search)) && (dept === '' || r.dept === dept));
       renderAdminTable(filtered);
     }
@@ -667,6 +663,7 @@
         'أول دخول': r.checkIn, 'آخر خروج': r.checkOut, 'تأخير الدخول': r.lateStr, 'الانصراف المبكر': r.earlyStr,
         'ساعات الإضافي': r.otStr, 'الحالة': r.status
       }));
+
       const ws = XLSX.utils.json_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "تقرير الحضور والإضافي");
