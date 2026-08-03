@@ -451,20 +451,31 @@
       fetchGoogleSheetData(url);
     }
 
-    function fetchGoogleSheetData(url) {
-      fetch(url)
-        .then(res => res.arrayBuffer())
-        .then(buffer => {
-          const data = new Uint8Array(buffer);
-          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-          processWorkbookData(workbook);
-          alert('تمت مزامنة البيانات وتصحيح التواريخ بنجاح!');
-        })
-        .catch(err => {
-          console.error(err);
-          alert('تعذر جلب البيانات، تأكد من نشر الشيت بصيغة Web/CSV.');
-        });
-    }
+  function fetchGoogleSheetData(url) {
+  // تحويل رابط التعديل العادي لـ Google Sheet إلى رابط تصدير XLSX مباشر
+  let directUrl = url;
+  if (url.includes('/edit')) {
+    directUrl = url.split('/edit')[0] + '/export?format=xlsx';
+  } else if (url.includes('/pubhtml')) {
+    directUrl = url.split('/pubhtml')[0] + '/export?format=xlsx';
+  }
+
+  fetch(directUrl)
+    .then(res => {
+      if (!res.ok) throw new Error('Network response was not ok');
+      return res.arrayBuffer();
+    })
+    .then(buffer => {
+      const data = new Uint8Array(buffer);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      processWorkbookData(workbook);
+      alert('تمت مزامنة كل الأوراق (داتا والسحب) وتحديث بيانات الموظفين بنجاح! 🎉');
+    })
+    .catch(err => {
+      console.error(err);
+      alert('❌ تعذر جلب البيانات. تأكد أن خيار المشاركة في Google Sheet مضبوط على "Anyone with the link" (أي شخص لديه الرابط).');
+    });
+}
 
     document.getElementById('excelFile').addEventListener('change', function(e) {
       const file = e.target.files[0];
