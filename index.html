@@ -511,91 +511,131 @@
         depts.forEach(d => { deptSelect.innerHTML += `<option value="${d}">${d}</option>`; });
       }
 
-      if (workbook.Sheets['السحب']) {
-        const rawPulls = XLSX.utils.sheet_to_json(workbook.Sheets['السحب'], { header: 1, raw: true });
-        for (let i = 1; i < rawPulls.length; i++) {
-          const row = rawPulls[i];
-          if (row && row[1]) {
-            globalPulls.push({ code: String(row[1]).trim(), dateVal: row[3], timeVal: row[4] });
-          }
-        }
+     // Parse Sheet "السحب"
+if (workbook.Sheets['السحب']) {
+  // raw: false تضمن قراءة النص الظاهر في الإكسيل كما هو بدون تحويلات تلقائية
+  const rawPulls = XLSX.utils.sheet_to_json(workbook.Sheets['السحب'], { header: 1, raw: false });
+  
+  for (let i = 1; i < rawPulls.length; i++) {
+    const row = rawPulls[i];
+    if (row && row[1]) {
+      // إجبار قراءة التاريخ والوقت كنصوص مجردة
+      let rawDateStr = String(row[3] || '').trim();
+      let rawTimeStr = String(row[4] || '').trim();
+
+      if (rawDateStr) {
+        globalPulls.push({
+          code: String(row[1]).trim(),
+          dateStr: rawDateStr, // تاريخ اليوم النصي من الشيت مباشرة
+          timeStr: rawTimeStr  // وقت البصمة النصي
+        });
       }
+    }
+  }
+}
       processAdminData();
     }
 
-    function processAdminData() {
-      const grouped = {};
-      globalPulls.forEach(p => {
-        const dateObj = parseExcelDateAccurate(p.dateVal);
-        const timeMins = parseToMinutes(p.timeVal);
-        if (timeMins !== null) {
-          const key = `${p.code}_${dateObj.str}`;
-          if (!grouped[key]) grouped[key] = { code: p.code, dateStr: dateObj.str, dayIdx: dateObj.dayIdx, times: [] };
-          grouped[key].times.push(timeMins);
-        }
-      });
+function processAdminData() {
+  const grouped = {};
 
-      let incompleteCount = 0, totalOvertimeMinsSum = 0, lateOrEarlyCount = 0;
-      processedAdminRecords = [];
+  globalPulls.forEach(p => {
+    // استخراج التاريخ بتنسيق YYYY-MM-DD لضمان عدم التداخل
+    const parsedDate = parseExcelDateAccurate(p.dateStr);
+    const timeMins = parseToMinutes(p.timeStr);
 
-      Object.values(grouped).forEach(item => {
-        item.times.sort((a, b) => a - b);
-        const emp = globalEmployees[item.code] || { name: 'غير معروف', dept: '-', job: '-' };
-        const checkInMins = item.times[0];
-        const checkOutMins = item.times.length > 1 ? item.times[item.times.length - 1] : null;
-        const dayName = DAY_NAMES_AR[item.dayIdx];
-
-        let normalIn = 8 * 60, normalOut = 16 * 60, morningOtStart = 7 * 60, morningOtEnd = 8 * 60, eveningOtStart = 16 * 60, eveningOtEnd = 17 * 60;
-
-        if (item.dayIdx === 6) { // السبت
-          normalIn = 9 * 60; normalOut = 16 * 60; morningOtStart = 8 * 60; morningOtEnd = 9 * 60; eveningOtStart = 16 * 60; eveningOtEnd = 17 * 60;
-        } else if (item.dayIdx === 4) { // الخميس
-          normalIn = 8 * 60; normalOut = 14 * 60; morningOtStart = 7 * 60; morningOtEnd = 8 * 60; eveningOtStart = 14 * 60; eveningOtEnd = 15 * 60;
-        }
-
-        let lateMins = checkInMins > normalIn ? checkInMins - normalIn : 0;
-        let earlyMins = (checkOutMins !== null && checkOutMins < normalOut) ? normalOut - checkOutMins : 0;
-
-        let morningOt = 0;
-        if (checkInMins < morningOtEnd) {
-          const effStart = Math.max(checkInMins, morningOtStart);
-          if (effStart < morningOtEnd) morningOt = morningOtEnd - effStart;
-        }
-
-        let eveningOt = 0;
-        if (checkOutMins !== null && checkOutMins > eveningOtStart) {
-          const effEnd = Math.min(checkOutMins, eveningOtEnd);
-          if (effEnd > eveningOtStart) eveningOt = eveningOtEnd - eveningOtStart;
-        }
-
-        const totalOtMins = morningOt + eveningOt;
-        totalOvertimeMinsSum += totalOtMins;
-        if (lateMins > 0 || earlyMins > 0) lateOrEarlyCount++;
-
-        let status = 'منتظم', badgeClass = 'badge-ok';
-        if (checkOutMins === null) { status = 'بدون خروج'; badgeClass = 'badge-warn'; incompleteCount++; }
-        else if (lateMins > 0 || earlyMins > 0) { status = 'تأخير / مبكر'; badgeClass = 'badge-danger'; }
-
-        processedAdminRecords.push({
-          code: item.code, name: emp.name, deptJob: `${emp.dept} / ${emp.job}`, dept: emp.dept,
-          dateFormatted: `${dayName} (${item.dateStr})`, checkIn: formatMinutesToTime(checkInMins),
-          checkOut: formatMinutesToTime(checkOutMins), lateStr: lateMins > 0 ? `${lateMins} دقيقة` : '-',
-          earlyStr: earlyMins > 0 ? `${earlyMins} دقيقة` : '-', otStr: totalOtMins > 0 ? `${(totalOtMins/60).toFixed(1)} س (${totalOtMins} د)` : '-',
-          status, badgeClass
-        });
-      });
-
-      document.getElementById('statTotalEmp').innerText = Object.keys(globalEmployees).length;
-      document.getElementById('statPresent').innerText = new Set(processedAdminRecords.map(r => r.code)).size;
-      document.getElementById('statTotalOvertime').innerText = `${Math.round(totalOvertimeMinsSum / 60)} ساعة (${totalOvertimeMinsSum} د)`;
-      document.getElementById('statTotalLate').innerText = lateOrEarlyCount;
-      document.getElementById('statIncomplete').innerText = incompleteCount;
-
-      renderAdminTable(processedAdminRecords);
-      // حفظ البيانات محلياً للموظفين
-      localStorage.setItem('pwa_records_data', JSON.stringify(processedAdminRecords));
-      localStorage.setItem('pwa_emp_data', JSON.stringify(globalEmployees));
+    if (parsedDate && timeMins !== null) {
+      // المفتاح يعتمد على الكود والتاريخ المظبوط فقط
+      const key = `${p.code}_${parsedDate.str}`;
+      if (!grouped[key]) {
+        grouped[key] = { 
+          code: p.code, 
+          dateStr: parsedDate.str, 
+          dayIdx: parsedDate.dayIdx, 
+          dateObj: parsedDate.dateObj,
+          times: [] 
+        };
+      }
+      grouped[key].times.push(timeMins);
     }
+  });
+
+  let incompleteCount = 0, totalOvertimeMinsSum = 0, lateOrEarlyCount = 0;
+  processedAdminRecords = [];
+
+  // تحويل الكائنات إلى مصفوفة وفرزها ترتيباً زمنياً تصاعدياً حسب التاريخ
+  const sortedRecords = Object.values(grouped).sort((a, b) => a.dateObj - b.dateObj);
+
+  sortedRecords.forEach(item => {
+    // ترتيب بصمات اليوم الواحد من الأصغر (أول دخول) إلى الأكبر (آخر خروج)
+    item.times.sort((a, b) => a - b);
+
+    const emp = globalEmployees[item.code] || { name: 'غير معروف', dept: '-', job: '-' };
+    const checkInMins = item.times[0];
+    const checkOutMins = item.times.length > 1 ? item.times[item.times.length - 1] : null;
+    const dayName = DAY_NAMES_AR[item.dayIdx];
+
+    // تحديد مواعيد الشيفت بناءً على اليوم
+    let normalIn = 8 * 60, normalOut = 16 * 60, morningOtStart = 7 * 60, morningOtEnd = 8 * 60, eveningOtStart = 16 * 60, eveningOtEnd = 17 * 60;
+
+    if (item.dayIdx === 6) { // السبت
+      normalIn = 9 * 60; normalOut = 16 * 60; morningOtStart = 8 * 60; morningOtEnd = 9 * 60; eveningOtStart = 16 * 60; eveningOtEnd = 17 * 60;
+    } else if (item.dayIdx === 4) { // الخميس
+      normalIn = 8 * 60; normalOut = 14 * 60; morningOtStart = 7 * 60; morningOtEnd = 8 * 60; eveningOtStart = 14 * 60; eveningOtEnd = 15 * 60;
+    }
+
+    let lateMins = checkInMins > normalIn ? checkInMins - normalIn : 0;
+    let earlyMins = (checkOutMins !== null && checkOutMins < normalOut) ? normalOut - checkOutMins : 0;
+
+    let morningOt = 0;
+    if (checkInMins < morningOtEnd) {
+      const effStart = Math.max(checkInMins, morningOtStart);
+      if (effStart < morningOtEnd) morningOt = morningOtEnd - effStart;
+    }
+
+    let eveningOt = 0;
+    if (checkOutMins !== null && checkOutMins > eveningOtStart) {
+      const effEnd = Math.min(checkOutMins, eveningOtEnd);
+      if (effEnd > eveningOtStart) eveningOt = eveningOtEnd - eveningOtStart;
+    }
+
+    const totalOtMins = morningOt + eveningOt;
+    totalOvertimeMinsSum += totalOtMins;
+    if (lateMins > 0 || earlyMins > 0) lateOrEarlyCount++;
+
+    let status = 'منتظم', badgeClass = 'badge-ok';
+    if (checkOutMins === null) { status = 'بدون خروج'; badgeClass = 'badge-warn'; incompleteCount++; }
+    else if (lateMins > 0 || earlyMins > 0) { status = 'تأخير / مبكر'; badgeClass = 'badge-danger'; }
+
+    processedAdminRecords.push({
+      code: item.code,
+      name: emp.name,
+      deptJob: `${emp.dept} / ${emp.job}`,
+      dept: emp.dept,
+      dateFormatted: `${dayName} (${item.dateStr})`,
+      checkIn: formatMinutesToTime(checkInMins),
+      checkOut: formatMinutesToTime(checkOutMins),
+      lateStr: lateMins > 0 ? `${lateMins} دقيقة` : '-',
+      earlyStr: earlyMins > 0 ? `${earlyMins} دقيقة` : '-',
+      otStr: totalOtMins > 0 ? `${(totalOtMins/60).toFixed(1)} س (${totalOtMins} د)` : '-',
+      status, 
+      badgeClass
+    });
+  });
+
+  // تحديث كروت الإحصائيات وجدول الأدمن
+  document.getElementById('statTotalEmp').innerText = Object.keys(globalEmployees).length;
+  document.getElementById('statPresent').innerText = new Set(processedAdminRecords.map(r => r.code)).size;
+  document.getElementById('statTotalOvertime').innerText = `${Math.round(totalOvertimeMinsSum / 60)} ساعة (${totalOvertimeMinsSum} د)`;
+  document.getElementById('statTotalLate').innerText = lateOrEarlyCount;
+  document.getElementById('statIncomplete').innerText = incompleteCount;
+
+  renderAdminTable(processedAdminRecords);
+
+  // حفظ البيانات محلياً للسرعة عند استعلام الموظفين
+  localStorage.setItem('pwa_records_data', JSON.stringify(processedAdminRecords));
+  localStorage.setItem('pwa_emp_data', JSON.stringify(globalEmployees));
+}
 
     function searchEmployee() {
       const code = document.getElementById('empCodeInput').value.trim();
