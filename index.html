@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام إدارة الحضور والإضافي والتأخيرات - Portal & Admin</title>
+  <title>نظام إدارة الحضور والإضافي والتأخيرات - PWA</title>
   
   <!-- PWA Meta Tags & Manifest Link -->
   <link rel="manifest" href="manifest.json">
@@ -54,7 +54,6 @@
       gap: 16px;
     }
 
-    /* Top Navigation / Mode Switcher */
     .nav-switcher {
       background: #10172a;
       border: 1px solid var(--card-border);
@@ -87,7 +86,6 @@
       box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
     }
 
-    /* Common Card Styles */
     .card {
       background-color: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -95,7 +93,6 @@
       padding: 16px;
     }
 
-    /* Upload Box - Admin Only */
     .upload-area {
       background-color: var(--card-bg);
       border: 2px dashed var(--accent-blue);
@@ -107,11 +104,9 @@
 
     .upload-area input { display: none; }
 
-    /* Views */
     .view-section { display: none; flex-direction: column; gap: 16px; }
     .view-section.active { display: flex; }
 
-    /* Inputs & Buttons */
     .input-field {
       background-color: #0b0f19;
       border: 1px solid var(--card-border);
@@ -134,7 +129,6 @@
       cursor: pointer;
     }
 
-    /* Stats Grid */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -160,7 +154,6 @@
     .val-purple { color: var(--accent-purple); }
     .val-red { color: var(--accent-red); }
 
-    /* Tables */
     .table-wrapper {
       overflow-x: auto;
       max-height: 520px;
@@ -212,7 +205,6 @@
       color: var(--text-muted);
     }
 
-    /* Modal / Password Overlay */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -242,13 +234,12 @@
 
   <div class="main-container">
 
-    <!-- Top Switcher -->
     <div class="nav-switcher">
       <button class="nav-btn active" id="btnTabEmp" onclick="switchTab('employee')">👤 واجهة الموظف</button>
       <button class="nav-btn" id="btnTabAdmin" onclick="switchTab('admin')">🔒 لوحة الأدمن (Admin)</button>
     </div>
 
-    <!-- SECTION 1: EMPLOYEE VIEW -->
+    <!-- EMPLOYEE VIEW -->
     <div id="viewEmployee" class="view-section active">
       <div class="card">
         <h3 style="margin-bottom: 12px; color: var(--accent-blue);">🔍 استعلام الموظف عن البصمات والإضافي</h3>
@@ -258,13 +249,11 @@
         </div>
       </div>
 
-      <!-- Employee Info Banner -->
       <div class="card" id="empProfileCard" style="display: none;">
         <h2 id="empProfileName" style="color: var(--accent-blue);">اسم الموظف</h2>
         <p id="empProfileDetail" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;"></p>
       </div>
 
-      <!-- Employee Records Table -->
       <div class="table-wrapper">
         <table>
           <thead>
@@ -280,53 +269,44 @@
           </thead>
           <tbody id="empTableBody">
             <tr>
-              <td colspan="7" class="empty-msg">من فضلك اطلب من الأدمن رفع البيانات، ثم ادخل كودك لاستعراض الحضور والاضافي.</td>
+              <td colspan="7" class="empty-msg">ادخل كودك واضغط عرض بياناتي لاستعراض الحضور والاضافي.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- SECTION 2: ADMIN VIEW -->
+    <!-- ADMIN VIEW -->
     <div id="viewAdmin" class="view-section">
 
-      <!-- Upload Area (Admin Only) -->
+      <!-- Sync Google Sheet / Excel Upload -->
+      <div class="card" style="display: flex; flex-direction: column; gap: 10px;">
+        <h4 style="color: var(--accent-blue);">🌐 ربط مع Google Sheet (مُوصى به)</h4>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="text" id="sheetUrlInput" class="input-field" placeholder="ضع رابط Google Sheet المُنشر..." />
+          <button class="btn-action" onclick="saveAndSyncSheet()">حفظ ومزامنة البيانات</button>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">عند ربط الرابط، سيتم تحديث البيانات لجميع الموظفين تلقائياً.</p>
+      </div>
+
       <div class="upload-area" onclick="document.getElementById('excelFile').click()">
-        <p>📁 <strong>رفع شيت الإكسيل (خاص بالمدير فقط):</strong> اضغط هنا لرفع أو تحديث بيانات الحضور والسحب</p>
+        <p>📁 <strong>أو ارفع شيت إكسيل مباشر من جهازك:</strong> اضغط هنا للرفع المحلي</p>
         <input type="file" id="excelFile" accept=".xlsx, .xls">
       </div>
 
-      <!-- Header Admin Action -->
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h2>📊 لوحة متابعة الحضور والشيفتات والإضافي</h2>
-        <button class="btn-action" style="background-color: #059669;" onclick="exportAdminExcel()">📥 تصدير تقرير Excel الشامل</button>
+        <button class="btn-action" style="background-color: #059669;" onclick="exportAdminExcel()">📥 تصدير تقرير Excel</button>
       </div>
 
-      <!-- Admin Stats Grid -->
       <div class="stats-grid">
-        <div class="stat-card">
-          <span class="title">إجمالي الموظفين</span>
-          <span class="value val-blue" id="statTotalEmp">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="title">الموظفين الحاضرين</span>
-          <span class="value val-green" id="statPresent">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="title">إجمالي دقائق الإضافي</span>
-          <span class="value val-purple" id="statTotalOvertime">0 د</span>
-        </div>
-        <div class="stat-card">
-          <span class="title">حالات التأخير / مبكر</span>
-          <span class="value val-red" id="statTotalLate">0</span>
-        </div>
-        <div class="stat-card">
-          <span class="title">بصمات بدون خروج</span>
-          <span class="value val-amber" id="statIncomplete">0</span>
-        </div>
+        <div class="stat-card"><span class="title">إجمالي الموظفين</span><span class="value val-blue" id="statTotalEmp">0</span></div>
+        <div class="stat-card"><span class="title">الموظفين الحاضرين</span><span class="value val-green" id="statPresent">0</span></div>
+        <div class="stat-card"><span class="title">إجمالي دقائق الإضافي</span><span class="value val-purple" id="statTotalOvertime">0 د</span></div>
+        <div class="stat-card"><span class="title">حالات التأخير / مبكر</span><span class="value val-red" id="statTotalLate">0</span></div>
+        <div class="stat-card"><span class="title">بصمات بدون خروج</span><span class="value val-amber" id="statIncomplete">0</span></div>
       </div>
 
-      <!-- Admin Filters -->
       <div class="card" style="display: flex; gap: 12px; flex-wrap: wrap;">
         <input type="text" id="adminSearch" class="input-field" placeholder="🔍 بحث باسم الموظف أو الكود..." oninput="filterAdminTable()">
         <select id="adminDeptFilter" class="input-field" onchange="filterAdminTable()">
@@ -334,7 +314,6 @@
         </select>
       </div>
 
-      <!-- Admin Table -->
       <div class="table-wrapper">
         <table>
           <thead>
@@ -352,9 +331,7 @@
             </tr>
           </thead>
           <tbody id="adminTableBody">
-            <tr>
-              <td colspan="10" class="empty-msg">يرجى رفع شيت الإكسيل لعرض التقرير الإداري الشامل.</td>
-            </tr>
+            <tr><td colspan="10" class="empty-msg">يرجى مزامنة Google Sheet أو رفع شيت الإكسيل.</td></tr>
           </tbody>
         </table>
       </div>
@@ -362,12 +339,11 @@
 
   </div>
 
-  <!-- PASSWORD MODAL -->
   <div class="modal-overlay" id="passwordModal">
     <div class="modal-card">
       <h3 style="color: var(--accent-blue);">🔒 دخول الأدمن</h3>
       <p style="font-size: 0.85rem; color: var(--text-muted);">يرجى إدخال كلمة المرور للوصول لمنطقة الإدارة:</p>
-      <input type="password" id="adminPassInput" class="input-field" placeholder="أدخل الباسورد هنا..." style="text-align: center;">
+      <input type="password" id="adminPassInput" class="input-field" placeholder="أدخل الباسورد..." style="text-align: center;">
       <div style="display: flex; gap: 8px;">
         <button class="btn-action" style="flex: 1;" onclick="checkAdminPassword()">دخول</button>
         <button class="btn-action" style="flex: 1; background-color: #475569;" onclick="closeModal()">إلغاء</button>
@@ -381,8 +357,15 @@
     let processedAdminRecords = [];
     let isAdminUnlocked = false;
     const ADMIN_PASSWORD = "505074";
-
     const DAY_NAMES_AR = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedUrl = localStorage.getItem('pwa_sheet_url');
+      if (savedUrl) {
+        document.getElementById('sheetUrlInput').value = savedUrl;
+        fetchGoogleSheetData(savedUrl);
+      }
+    });
 
     function switchTab(tab) {
       if (tab === 'admin' && !isAdminUnlocked) {
@@ -391,7 +374,6 @@
         document.getElementById('adminPassInput').focus();
         return;
       }
-
       document.getElementById('btnTabEmp').classList.remove('active');
       document.getElementById('btnTabAdmin').classList.remove('active');
       document.getElementById('viewEmployee').classList.remove('active');
@@ -407,8 +389,7 @@
     }
 
     function checkAdminPassword() {
-      const inputPass = document.getElementById('adminPassInput').value.trim();
-      if (inputPass === ADMIN_PASSWORD) {
+      if (document.getElementById('adminPassInput').value.trim() === ADMIN_PASSWORD) {
         isAdminUnlocked = true;
         closeModal();
         switchTab('admin');
@@ -417,24 +398,42 @@
       }
     }
 
-    function closeModal() {
-      document.getElementById('passwordModal').style.display = 'none';
+    function closeModal() { document.getElementById('passwordModal').style.display = 'none'; }
+
+    // الإصلاح الجذري لقراءة التواريخ المظبوطة بدون Timezone Shift
+    function parseExcelDateAccurate(val) {
+      if (!val && val !== 0) return { str: '-', dayIdx: 0 };
+      let d;
+      if (val instanceof Date) {
+        d = new Date(val.getTime() + (val.getTimezoneOffset() * 60000));
+      } else if (typeof val === 'number') {
+        d = new Date(Math.round((val - (25567 + 2)) * 86400 * 1000));
+      } else {
+        d = new Date(val);
+      }
+      
+      if (isNaN(d.getTime())) {
+        const parts = String(val).split(' ')[0].split('-');
+        if(parts.length === 3) {
+          d = new Date(parts[0], parts[1] - 1, parts[2]);
+        } else {
+          return { str: String(val), dayIdx: 0 };
+        }
+      }
+
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      
+      return { str: `${year}-${month}-${day}`, dayIdx: d.getDay() };
     }
 
     function parseToMinutes(val) {
       if (!val && val !== 0) return null;
-      if (val instanceof Date) {
-        return val.getHours() * 60 + val.getMinutes();
-      }
-      if (typeof val === 'number') {
-        const totalSeconds = Math.round((val % 1) * 86400);
-        return Math.floor(totalSeconds / 60);
-      }
-      const str = String(val).trim();
-      const parts = str.split(':');
-      if (parts.length >= 2) {
-        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-      }
+      if (val instanceof Date) return val.getHours() * 60 + val.getMinutes();
+      if (typeof val === 'number') return Math.floor(Math.round((val % 1) * 86400) / 60);
+      const parts = String(val).trim().split(':');
+      if (parts.length >= 2) return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
       return null;
     }
 
@@ -445,199 +444,133 @@
       return `${h}:${m}`;
     }
 
-    function formatExcelDateObj(val) {
-      if (!val && val !== 0) return { str: '-', dayIdx: 0 };
-      let d;
-      if (val instanceof Date) {
-        d = val;
-      } else if (typeof val === 'number') {
-        d = new Date(Math.round((val - (25567 + 2)) * 86400 * 1000));
-      } else {
-        d = new Date(val);
-      }
-      
-      if (isNaN(d.getTime())) {
-        const str = String(val).split(' ')[0].split('T')[0];
-        return { str: str, dayIdx: 0 };
-      }
+    function saveAndSyncSheet() {
+      const url = document.getElementById('sheetUrlInput').value.trim();
+      if (!url) { alert('يرجى وضع رابط الشيت أولاً'); return; }
+      localStorage.setItem('pwa_sheet_url', url);
+      fetchGoogleSheetData(url);
+    }
 
-      const str = d.toISOString().split('T')[0];
-      return { str: str, dayIdx: d.getDay() };
+    function fetchGoogleSheetData(url) {
+      fetch(url)
+        .then(res => res.arrayBuffer())
+        .then(buffer => {
+          const data = new Uint8Array(buffer);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          processWorkbookData(workbook);
+          alert('تمت مزامنة البيانات وتصحيح التواريخ بنجاح!');
+        })
+        .catch(err => {
+          console.error(err);
+          alert('تعذر جلب البيانات، تأكد من نشر الشيت بصيغة Web/CSV.');
+        });
     }
 
     document.getElementById('excelFile').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-
-        globalEmployees = {};
-        globalPulls = [];
-
-        // Parse Sheet "داتا"
-        if (workbook.Sheets['داتا']) {
-          const rawEmp = XLSX.utils.sheet_to_json(workbook.Sheets['داتا'], { header: 1, raw: true });
-          const depts = new Set();
-          for (let i = 4; i < rawEmp.length; i++) {
-            const row = rawEmp[i];
-            if (row && row[0]) {
-              const code = String(row[0]).trim();
-              const dept = row[3] || 'غير محدد';
-              globalEmployees[code] = {
-                code: code,
-                name: row[1] || 'غير محدد',
-                job: row[2] || '-',
-                dept: dept,
-                restDay: row[4] || '-'
-              };
-              if (dept !== 'غير محدد') depts.add(dept);
-            }
-          }
-
-          const deptSelect = document.getElementById('adminDeptFilter');
-          deptSelect.innerHTML = '<option value="">جميع الأقسام</option>';
-          depts.forEach(d => { deptSelect.innerHTML += `<option value="${d}">${d}</option>`; });
-        }
-
-        // Parse Sheet "السحب"
-        if (workbook.Sheets['السحب']) {
-          const rawPulls = XLSX.utils.sheet_to_json(workbook.Sheets['السحب'], { header: 1, raw: true });
-          for (let i = 1; i < rawPulls.length; i++) {
-            const row = rawPulls[i];
-            if (row && row[1]) {
-              globalPulls.push({
-                code: String(row[1]).trim(),
-                dateVal: row[3],
-                timeVal: row[4]
-              });
-            }
-          }
-        }
-
-        processAdminData();
-        alert('تم تحميل البيانات وحساب الإضافي والتأخيرات بنجاح!');
+        processWorkbookData(workbook);
+        alert('تم تحميل البيانات وحساب المواعيد والإضافي بنجاح!');
       };
       reader.readAsArrayBuffer(file);
     });
 
+    function processWorkbookData(workbook) {
+      globalEmployees = {};
+      globalPulls = [];
+
+      if (workbook.Sheets['داتا']) {
+        const rawEmp = XLSX.utils.sheet_to_json(workbook.Sheets['داتا'], { header: 1, raw: true });
+        const depts = new Set();
+        for (let i = 4; i < rawEmp.length; i++) {
+          const row = rawEmp[i];
+          if (row && row[0]) {
+            const code = String(row[0]).trim();
+            const dept = row[3] || 'غير محدد';
+            globalEmployees[code] = { code, name: row[1] || 'غير محدد', job: row[2] || '-', dept, restDay: row[4] || '-' };
+            if (dept !== 'غير محدد') depts.add(dept);
+          }
+        }
+        const deptSelect = document.getElementById('adminDeptFilter');
+        deptSelect.innerHTML = '<option value="">جميع الأقسام</option>';
+        depts.forEach(d => { deptSelect.innerHTML += `<option value="${d}">${d}</option>`; });
+      }
+
+      if (workbook.Sheets['السحب']) {
+        const rawPulls = XLSX.utils.sheet_to_json(workbook.Sheets['السحب'], { header: 1, raw: true });
+        for (let i = 1; i < rawPulls.length; i++) {
+          const row = rawPulls[i];
+          if (row && row[1]) {
+            globalPulls.push({ code: String(row[1]).trim(), dateVal: row[3], timeVal: row[4] });
+          }
+        }
+      }
+      processAdminData();
+    }
+
     function processAdminData() {
       const grouped = {};
       globalPulls.forEach(p => {
-        const dateObj = formatExcelDateObj(p.dateVal);
+        const dateObj = parseExcelDateAccurate(p.dateVal);
         const timeMins = parseToMinutes(p.timeVal);
-        
         if (timeMins !== null) {
           const key = `${p.code}_${dateObj.str}`;
-          if (!grouped[key]) {
-            grouped[key] = { code: p.code, dateStr: dateObj.str, dayIdx: dateObj.dayIdx, times: [] };
-          }
+          if (!grouped[key]) grouped[key] = { code: p.code, dateStr: dateObj.str, dayIdx: dateObj.dayIdx, times: [] };
           grouped[key].times.push(timeMins);
         }
       });
 
-      let incompleteCount = 0;
-      let totalOvertimeMinsSum = 0;
-      let lateOrEarlyCount = 0;
+      let incompleteCount = 0, totalOvertimeMinsSum = 0, lateOrEarlyCount = 0;
       processedAdminRecords = [];
 
       Object.values(grouped).forEach(item => {
         item.times.sort((a, b) => a - b);
-
         const emp = globalEmployees[item.code] || { name: 'غير معروف', dept: '-', job: '-' };
         const checkInMins = item.times[0];
         const checkOutMins = item.times.length > 1 ? item.times[item.times.length - 1] : null;
-
         const dayName = DAY_NAMES_AR[item.dayIdx];
 
-        let normalIn, normalOut, morningOtStart, morningOtEnd, eveningOtStart, eveningOtEnd;
+        let normalIn = 8 * 60, normalOut = 16 * 60, morningOtStart = 7 * 60, morningOtEnd = 8 * 60, eveningOtStart = 16 * 60, eveningOtEnd = 17 * 60;
 
-        if (item.dayIdx === 6) { // Saturday
-          normalIn = 9 * 60;
-          normalOut = 16 * 60;
-          morningOtStart = 8 * 60;
-          morningOtEnd = 9 * 60;
-          eveningOtStart = 16 * 60;
-          eveningOtEnd = 17 * 60;
-        } else if (item.dayIdx === 4) { // Thursday
-          normalIn = 8 * 60;
-          normalOut = 14 * 60;
-          morningOtStart = 7 * 60;
-          morningOtEnd = 8 * 60;
-          eveningOtStart = 14 * 60;
-          eveningOtEnd = 15 * 60;
-        } else { // Sun, Mon, Tue, Wed
-          normalIn = 8 * 60;
-          normalOut = 16 * 60;
-          morningOtStart = 7 * 60;
-          morningOtEnd = 8 * 60;
-          eveningOtStart = 16 * 60;
-          eveningOtEnd = 17 * 60;
+        if (item.dayIdx === 6) { // السبت
+          normalIn = 9 * 60; normalOut = 16 * 60; morningOtStart = 8 * 60; morningOtEnd = 9 * 60; eveningOtStart = 16 * 60; eveningOtEnd = 17 * 60;
+        } else if (item.dayIdx === 4) { // الخميس
+          normalIn = 8 * 60; normalOut = 14 * 60; morningOtStart = 7 * 60; morningOtEnd = 8 * 60; eveningOtStart = 14 * 60; eveningOtEnd = 15 * 60;
         }
 
-        let lateMins = 0;
-        if (checkInMins > normalIn) {
-          lateMins = checkInMins - normalIn;
-        }
-
-        let earlyMins = 0;
-        if (checkOutMins !== null && checkOutMins < normalOut) {
-          earlyMins = normalOut - checkOutMins;
-        }
+        let lateMins = checkInMins > normalIn ? checkInMins - normalIn : 0;
+        let earlyMins = (checkOutMins !== null && checkOutMins < normalOut) ? normalOut - checkOutMins : 0;
 
         let morningOt = 0;
         if (checkInMins < morningOtEnd) {
-          const effectiveStart = Math.max(checkInMins, morningOtStart);
-          if (effectiveStart < morningOtEnd) {
-            morningOt = morningOtEnd - effectiveStart;
-          }
+          const effStart = Math.max(checkInMins, morningOtStart);
+          if (effStart < morningOtEnd) morningOt = morningOtEnd - effStart;
         }
 
         let eveningOt = 0;
         if (checkOutMins !== null && checkOutMins > eveningOtStart) {
-          const effectiveEnd = Math.min(checkOutMins, eveningOtEnd);
-          if (effectiveEnd > eveningOtStart) {
-            eveningOt = effectiveEnd - eveningOtStart;
-          }
+          const effEnd = Math.min(checkOutMins, eveningOtEnd);
+          if (effEnd > eveningOtStart) eveningOt = eveningOtEnd - eveningOtStart;
         }
 
         const totalOtMins = morningOt + eveningOt;
         totalOvertimeMinsSum += totalOtMins;
-
         if (lateMins > 0 || earlyMins > 0) lateOrEarlyCount++;
 
-        let status = 'منتظم';
-        let badgeClass = 'badge-ok';
-
-        if (checkOutMins === null) {
-          status = 'بدون خروج';
-          badgeClass = 'badge-warn';
-          incompleteCount++;
-        } else if (lateMins > 0 || earlyMins > 0) {
-          status = 'تأخير / مبكر';
-          badgeClass = 'badge-danger';
-        }
-
-        const otHoursStr = totalOtMins > 0 ? `${(totalOtMins/60).toFixed(1)} س (${totalOtMins} د)` : '-';
-        const lateStr = lateMins > 0 ? `${lateMins} دقيقة` : '-';
-        const earlyStr = earlyMins > 0 ? `${earlyMins} دقيقة` : '-';
+        let status = 'منتظم', badgeClass = 'badge-ok';
+        if (checkOutMins === null) { status = 'بدون خروج'; badgeClass = 'badge-warn'; incompleteCount++; }
+        else if (lateMins > 0 || earlyMins > 0) { status = 'تأخير / مبكر'; badgeClass = 'badge-danger'; }
 
         processedAdminRecords.push({
-          code: item.code,
-          name: emp.name,
-          deptJob: `${emp.dept} / ${emp.job}`,
-          dept: emp.dept,
-          dateFormatted: `${dayName} (${item.dateStr})`,
-          checkIn: formatMinutesToTime(checkInMins),
-          checkOut: formatMinutesToTime(checkOutMins),
-          lateStr: lateStr,
-          earlyStr: earlyStr,
-          otStr: otHoursStr,
-          totalOtMins: totalOtMins,
-          status: status,
-          badgeClass: badgeClass
+          code: item.code, name: emp.name, deptJob: `${emp.dept} / ${emp.job}`, dept: emp.dept,
+          dateFormatted: `${dayName} (${item.dateStr})`, checkIn: formatMinutesToTime(checkInMins),
+          checkOut: formatMinutesToTime(checkOutMins), lateStr: lateMins > 0 ? `${lateMins} دقيقة` : '-',
+          earlyStr: earlyMins > 0 ? `${earlyMins} دقيقة` : '-', otStr: totalOtMins > 0 ? `${(totalOtMins/60).toFixed(1)} س (${totalOtMins} د)` : '-',
+          status, badgeClass
         });
       });
 
@@ -648,6 +581,9 @@
       document.getElementById('statIncomplete').innerText = incompleteCount;
 
       renderAdminTable(processedAdminRecords);
+      // حفظ البيانات محلياً للموظفين
+      localStorage.setItem('pwa_records_data', JSON.stringify(processedAdminRecords));
+      localStorage.setItem('pwa_emp_data', JSON.stringify(globalEmployees));
     }
 
     function searchEmployee() {
@@ -655,12 +591,17 @@
       const tbody = document.getElementById('empTableBody');
       const profileCard = document.getElementById('empProfileCard');
 
-      if (!code) {
-        alert('برجاء إدخال كود الموظف');
-        return;
+      if (!code) { alert('برجاء إدخال كود الموظف'); return; }
+
+      let records = processedAdminRecords;
+      let employees = globalEmployees;
+
+      if (records.length === 0) {
+        records = JSON.parse(localStorage.getItem('pwa_records_data') || '[]');
+        employees = JSON.parse(localStorage.getItem('pwa_emp_data') || '{}');
       }
 
-      const emp = globalEmployees[code];
+      const emp = employees[code];
       if (emp) {
         profileCard.style.display = 'block';
         document.getElementById('empProfileName').innerText = `👤 ${emp.name}`;
@@ -671,7 +612,7 @@
         document.getElementById('empProfileDetail').innerText = `بيانات الموظف غير مقيدة بشيت الداتا.`;
       }
 
-      const myRecords = processedAdminRecords.filter(r => r.code === code);
+      const myRecords = records.filter(r => r.code === code);
       tbody.innerHTML = '';
 
       if (myRecords.length === 0) {
@@ -697,21 +638,12 @@
     function renderAdminTable(data) {
       const tbody = document.getElementById('adminTableBody');
       tbody.innerHTML = '';
-
-      if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">لا توجد بيانات مطابقة للبحث.</td></tr>';
-        return;
-      }
-
+      if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">لا توجد بيانات مطابقة.</td></tr>'; return; }
       data.forEach(r => {
         tbody.innerHTML += `
           <tr>
-            <td><strong>${r.code}</strong></td>
-            <td>${r.name}</td>
-            <td>${r.deptJob}</td>
-            <td>${r.dateFormatted}</td>
-            <td>🟢 ${r.checkIn}</td>
-            <td>🔴 ${r.checkOut}</td>
+            <td><strong>${r.code}</strong></td><td>${r.name}</td><td>${r.deptJob}</td><td>${r.dateFormatted}</td>
+            <td>🟢 ${r.checkIn}</td><td>🔴 ${r.checkOut}</td>
             <td style="color: ${r.lateStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.lateStr}</td>
             <td style="color: ${r.earlyStr !== '-' ? 'var(--accent-red)' : 'inherit'}">${r.earlyStr}</td>
             <td style="color: ${r.otStr !== '-' ? 'var(--accent-green)' : 'inherit'}; font-weight: bold;">${r.otStr}</td>
@@ -724,35 +656,17 @@
     function filterAdminTable() {
       const search = document.getElementById('adminSearch').value.toLowerCase();
       const dept = document.getElementById('adminDeptFilter').value;
-
-      const filtered = processedAdminRecords.filter(r => {
-        const matchesSearch = r.name.toLowerCase().includes(search) || r.code.includes(search);
-        const matchesDept = dept === '' || r.dept === dept;
-        return matchesSearch && matchesDept;
-      });
-
+      const filtered = processedAdminRecords.filter(r => (r.name.toLowerCase().includes(search) || r.code.includes(search)) && (dept === '' || r.dept === dept));
       renderAdminTable(filtered);
     }
 
     function exportAdminExcel() {
-      if (processedAdminRecords.length === 0) {
-        alert('لا توجد بيانات للتصدير.');
-        return;
-      }
-
+      if (processedAdminRecords.length === 0) { alert('لا توجد بيانات للتصدير.'); return; }
       const wsData = processedAdminRecords.map(r => ({
-        'الكود': r.code,
-        'اسم الموظف': r.name,
-        'القسم والوظيفة': r.deptJob,
-        'اليوم والتاريخ': r.dateFormatted,
-        'أول دخول': r.checkIn,
-        'آخر خروج': r.checkOut,
-        'تأخير الدخول': r.lateStr,
-        'الانصراف المبكر': r.earlyStr,
-        'ساعات الإضافي': r.otStr,
-        'الحالة': r.status
+        'الكود': r.code, 'اسم الموظف': r.name, 'القسم والوظيفة': r.deptJob, 'اليوم والتاريخ': r.dateFormatted,
+        'أول دخول': r.checkIn, 'آخر خروج': r.checkOut, 'تأخير الدخول': r.lateStr, 'الانصراف المبكر': r.earlyStr,
+        'ساعات الإضافي': r.otStr, 'الحالة': r.status
       }));
-
       const ws = XLSX.utils.json_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "تقرير الحضور والإضافي");
